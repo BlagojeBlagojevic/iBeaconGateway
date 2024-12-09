@@ -5,7 +5,7 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 ---
 
 
-## 📖 **Features**
+## 1. **Features**
 
 - **BLE Scanning and Filtering:**
   - Captures BLE advertisements and filters data based on UUIDs.
