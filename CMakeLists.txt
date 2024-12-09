@@ -5,4 +5,4 @@
 cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(ETFIS_Pametni_Parking_code)
+project(project_code)
