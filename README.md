@@ -4,16 +4,16 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 📖 **Features**
+## 1. **Features**
 
 - **BLE Scanning and Position Estimation:**
   - Scans for BLE iBeacon advertisements and calculates distances using RSSI values.
   - Filters UUIDs to ensure only relevant data is sent to the MQTT broker.
 - **Position Estimation Formula:**
   - Implements distance estimation with the formula:  
-    ```
+    ```c
     RSSI = -10.0f * N * log10(distance) + RSSI(Distance.1m);
-    Distance = 10^((Measured Power - Instant RSSI)/(10 * N)).
+    Distance = 10^((RSSI - RSSI(Distance.1m))/(10 * N)).
     ```
 - **Smart Camera Data Parsing:**
   - Parses event data from a Milesight smart camera for parking space monitoring and sends it to the MQTT broker.
@@ -23,7 +23,7 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 🚀 **How It Works**
+## 2. **How It Works**
 
 1. **BLE Scanning and UUID Filtering:**
    - The ESP32 scans for nearby BLE iBeacons and filters data by UUID before processing and rssi.
@@ -40,7 +40,7 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 📦 **Repository Structure**
+## 3. **Repository Structure**
 
 ```
 ├── components
@@ -71,7 +71,7 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 🛠️ **Hardware Requirements**
+## 4. **Hardware Requirements**
 
 - **ESP32 Development Board** (e.g., ESP32-WROOM-32 or similar)
 - One or more **iBeacon Devices**
@@ -81,7 +81,7 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 🖥️ **Software Requirements**
+## 5. **Software Requirements**
 
 - **ESP-IDF Framework** (v4.x or later recommended)
 - **MQTT Broker** (e.g., Mosquitto, AWS IoT, or HiveMQ)
@@ -89,13 +89,13 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 📋 **Setup and Installation**
+## 6. **Setup and Installation**
 
 ### ESP32 Firmware
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/ibeacon-gateway-esp32.git
-   cd ibeacon-gateway-esp32
+   git clone https://github.com/BlagojeBlagojevic/iBeaconGateway.git
+   cd iBeaconGateway-main
    ```
 2. Install and configure ESP-IDF:
    - Follow the [ESP-IDF Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/).
@@ -103,15 +103,15 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
    - Wi-Fi credentials
    - MQTT broker details
    - UUID filter list
+
 4. Build and flash the firmware:
    ```bash
    idf.py build
    idf.py flash
    ```
-
 ---
 
-## 📊 **JSON Data Formats**
+## 7. **JSON Data Formats**
 
 ### iBeacon Data
 Data is sent to the MQTT broker in the following JSON format:
@@ -143,7 +143,7 @@ Camera events are parsed and sent to the MQTT broker in this format:
 
 ---
 
-## 🧪 **Testing**
+## 8. **Testing**
 
 - Power on the ESP32, iBeacon devices, and the Milesight camera.
 - Monitor MQTT topics for iBeacon and camera data.
@@ -151,13 +151,13 @@ Camera events are parsed and sent to the MQTT broker in this format:
 
 ---
 
-## 🌟 **Contributing**
+## 9. **Contributing**
 
 Contributions are welcome! Feel free to submit a pull request or open an issue to suggest improvements or new features.
 
 ---
 
-## 📜 **License**
+## 10. **License**
 
 This project is licensed under the [MIT License](LICENSE).
 
