@@ -4,25 +4,39 @@ This repository features an **iBeacon Gateway** implemented using **ESP32** and 
 
 ---
 
-## 1. **Features**
 
-- **BLE Scanning and Position Estimation:**
-  - Scans for BLE iBeacon advertisements and calculates distances using RSSI values.
-  - Filters UUIDs to ensure only relevant data is sent to the MQTT broker.
-- **Position Estimation Formula:**
-  - Implements distance estimation with the formula:  
+## 📖 **Features**
+
+- **BLE Scanning and Filtering:**
+  - Captures BLE advertisements and filters data based on UUIDs.
+
+- **Position Estimation:**
+  - Calculates distances using RSSI values with the formula:  
     ```c
     RSSI = -10.0f * N * log10(distance) + RSSI(Distance.1m);
-    Distance = 10^((RSSI - RSSI(Distance.1m))/(10 * N)).
+    Distance = 10^((RSSI(Distance.1m) - RSSI)/(10 * N)).
     ```
-- **Smart Camera Data Parsing:**
-  - Parses event data from a Milesight smart camera for parking space monitoring and sends it to the MQTT broker.
-- **JSON Data Formats:**
-  - iBeacon data: Includes RSSI, distance, and spatial coordinates.
-  - Camera data: Contains event type, timestamp, and occupancy information.
 
----
+- **Smart Camera Integration:**
+  - Parses data from Milesight smart cameras, including parking space detection and occupancy information.
 
+- **MQTT Communication:**
+  - Publishes iBeacon and camera data to an MQTT broker over secure connections (MQTT over TLS).
+
+- **Web Server:**
+  - Provides an asynchronous server for managing configurations, including:
+    - UUID filters
+    - Environmental factors for position estimation
+    - Coordinate and tag management.
+
+- **Wi-Fi and Ethernet Support:**
+  - Supports both Wi-Fi and ENC28J60 Ethernet connectivity for flexible deployment.
+
+- **Persistent Storage:**
+  - Stores parking and tag data in SPIFFS for long-term availability.
+
+- **Scalable BLE and Camera Support:**
+  - Supports up to 100 parking areas and multiple BLE tags.
 ## 2. **How It Works**
 
 1. **BLE Scanning and UUID Filtering:**
