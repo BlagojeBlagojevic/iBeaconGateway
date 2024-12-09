@@ -137,7 +137,7 @@ static volatile float pos_y = 0;
 //Distance = 10^((Measured Power - Instant RSSI)/(10*N)).
 #include<math.h>
 static inline double distance(int rssi, int ref){
-	const double temp = (rssi - ref) / (double)(10.0f * enviroment_factor);
+	const double temp = (ref - rssi) / (double)(10.0f * enviroment_factor);
 	return pow(10.0f, temp);
 }
 
