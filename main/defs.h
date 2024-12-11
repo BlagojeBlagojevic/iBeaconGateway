@@ -112,6 +112,7 @@ typedef enum {
 	ENV_FACTOR,
 	POS_X,
 	POS_Y,
+	RSSI_TRESHOLD,
 	NUM_OF_TOPICS
 	} Topics;
 //PRAVI PUT DO
@@ -124,6 +125,7 @@ const char* topics[]= {
 	"ENV_FACTOR",
 	"POS_X",
 	"POS_Y",
+	"RSSI_TRESHOLD"
 	"NUM_OF_TOPICS",
 	};
 
