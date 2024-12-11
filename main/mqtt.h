@@ -106,7 +106,7 @@ extern void mqtt_app_start(void) {
 	ESP_LOGI(TAG, "Starting mqtt");
 	const esp_mqtt_client_config_t mqtt_cfg = {
 		.broker = {
-			.address.uri = "mqtts://mqttiot.lanaco.com:8883",
+			.address.uri = MQTTS,
 			//.verification.use_global_ca_store = false,
 			//.verification.certificate = NULL,
 			.verification = {
