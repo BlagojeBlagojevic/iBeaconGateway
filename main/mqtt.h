@@ -50,7 +50,15 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 			printf("\nTOPIC=%.*s\r\n", event->topic_len, event->topic);
 			printf("DATA=%.*s\r\n", event->data_len, event->data);
 			if(!strcmp(topics[ADD_UUID], event->topic)) {
-				memcpy(saved_uuids[num_reg_uuid++], event->data, sizeof(uint8_t)*16);
+				int is = 0;
+				for(int i = 0; i < num_reg_uuid; i++){
+					if(!memcmp(saved_uuids[i], event->data, sizeof(uint8_t)*16)){
+						is = 1;
+						break;
+					}
+				}
+				if(!is)
+					memcpy(saved_uuids[num_reg_uuid++], event->data, sizeof(uint8_t)*16);
 				}
 			else if(!strcmp(topics[REMOVE_UUID], event->topic)) {
 				for(uint8_t i = 0; i < num_reg_uuid; i++) {
@@ -72,6 +80,9 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 			else if(!strcmp(topics[POS_Y], event->topic)) {
 				pos_y = strtof(event->data, NULL);
 				}
+			else if(!strcmp(topics[RSSI_TRESHOLD], event->topic)){
+				rssi_treshold = (int)atoi(event->data);
+			}
 			break;
 		case MQTT_EVENT_ERROR:
 			//TBD WHAT IF ERROR IS HAPANING
@@ -95,7 +106,7 @@ extern void mqtt_app_start(void) {
 	ESP_LOGI(TAG, "Starting mqtt");
 	const esp_mqtt_client_config_t mqtt_cfg = {
 		.broker = {
-			.address.uri = MQTTS,
+			.address.uri = "mqtts://mqttiot.lanaco.com:8883",
 			//.verification.use_global_ca_store = false,
 			//.verification.certificate = NULL,
 			.verification = {
