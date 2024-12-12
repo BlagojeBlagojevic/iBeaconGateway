@@ -1907,43 +1907,595 @@ void app_main(){
 }
 
 ```
-## cJSON
+## Bluetooth Low Energy (BLE)
 
-### Camera 
+
+The Bluetooth system can be divided into two different categories: Classic Bluetooth and Bluetooth Low
+Energy (BLE). ESP32 supports dual-mode Bluetooth, meaning that both Classic Bluetooth
+and Bluetooth LE are supported by ESP32. Clasical bluethooth is a striming protocol hance it consumes more energy 
+then it counterpart Bluetooth Low Energy(BLE). Esp32 bluethooth Controller has integrated a variety of functions, including H4 protocol, HCI, LinkManager, Link Controller, Device Manager, and HW Interface.
+
+
+Bluetooth Low Energy (BLE): Bluetooth Low Energy is a wireless communication protocol designed for energy-efficient data transmission. It’s ideal for IoT devices, wearables, and applications where power consumption is critical.
+On esp32 BLE stack for use is nible bluethooth stack.
+
+### GATT
+
+The ATT specifies the minimum data storage unit in the Bluetooth LE architecture, while the
+GATT defines how to represent a data set using attribute values and descriptors, how to
+aggregate similar data into a service, and how to find out what services and data a peer
+device owns.
+The GATT introduces the concept of Characteristics, which are about information that is
+not purely numerical, as in the cases outlined below:
+
+• The unit of a given value, for example, weight measured in kilograms (kg),
+temperature measured in Celsius (℃), and so on.
+
+• The name of a given value. For example, for characteristics with the same UUID, e.g.
+temperature attribute, the name of the value informs the peer device that this value
+indicates “the temperature in the master bedroom”, while the other one indicates “the
+temperature in the living room”.
+
+• The exponent of excessive data numbers, such as 230,000 and 460,000. Given that
+the exponent is already specified as 10^4, transmitting only “23” and “46” is enough
+to represent 230,000 and 460,000.
+These are just a few examples of the many existing requirements for describing data
+accurately in actual applications. In order to provide more nuanced information, a large
+piece of data space should be reserved to store this additional information in each
+characteristic. However, in many cases, most of the extra space reserved will not be used.
+Such a design, then, will not comply with BLE's prerequisite to have as concise as possible
+protocols. In cases like this, the GATT specification introduces the concept of descriptors
+to outline this additional information. It must be noted that each piece of data and
+descriptor do not have a one-to-one correspondence, that is, complex data can have
+multiple descriptors, while simple data can have no descriptors at all.
+
+
+### Generic Access Profile (Gap)
+
+The GAP (the Generic Access Profile) defines the discovery process, device
+management and the establishment of device connection between Bluetooth LE devices.
+The Bluetooth LE GAP is implemented in the form of API calls and Event returns. The
+processing result of API calls in the protocol stack is returned by Events. When a peer
+device initiates a request, the status of that peer device is also returned by an Event.
+There are four GAP roles defined for a Bluetooth LE device:
+
+• Broadcaster: A broadcaster is a device that sends advertising packets, so it can be
+discovered by the observers. This device can only advertise, but cannot be
+connected.
+
+• Observer: An observer is a device that scans for broadcasters and reports this
+information to an application. This device can only send scan requests, but cannot be
+connected.
+
+• Peripheral: A peripheral is a device that advertises by using connectable advertising
+packets and becomes a slave once it gets connected.
+
+• Central: A central is a device that initiates connections to peripherals and becomes a
+master once a physical link is established.
+
+### Nimble stack
+As we already sad nible stack is a ble stack used on esp32.
+To get this stack to work we first nead to include next headers
+```c
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+#include "esp_log.h"
+#include "esp_nimble_hci.h"
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
+#include "host/ble_hs.h"
+#include "services/gap/ble_svc_gap.h"
+#include "services/gatt/ble_svc_gatt.h"
+#include "sdkconfig.h"
+```
+Also we nead to setup type of a ble stack(nimble stack) in menuconfig. It is under the compononent category.
+
+This stack depends on nvs flash (like most of periferals probably some basic info are saved there) so we nead to init it ` nvs_flash_init()`.
+
+Next step is only done on older version of a esp32. This step `esp_nimble_hci_and_controller_init()` 
+is moved in nimble_port_init().
+This step initilaise a comtroler on esp32 witch act kinda like a bridge betwean chip and esp32. I mean 
+it setup all of them you get the point. 
+
+Next step inits the host stack `nimble_port_init()`.
+
+In next 3 steps we add a name for our ble device(How we will find it on a network), and also init a gat, gap service.
 ```c
 
-  cJSON *json = cJSON_Parse(content);
-  if(json == NULL)
-  	return 1;
-  cJSON *time = cJSON_GetObjectItemCaseSensitive(json, "time");
-  printf("time : %s\n", time->valuestring);
-	cJSON *parkings = cJSON_GetObjectItemCaseSensitive(json, "parking_detail");
-  cJSON *parking = NULL;
-  cJSON *name;
+ble_svc_gap_device_name_set("BLE_asdasd"); // 4 - Initialize NimBLE configuration - server name
+ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
+ble_svc_gatt_init();                       // 4 - Initialize NimBLE configuration - gatt service
 
-    cJSON_ArrayForEach(parking, parkings){
-        cJSON *area_name =  cJSON_GetObjectItemCaseSensitive(parking, "area_name");
-        printf("area_name %s\n", area_name->valuestring);
-        cJSON *occupancy =  cJSON_GetObjectItemCaseSensitive(parking, "occupancy");
-        cJSON *place;
-        int counter = 0;
-        cJSON_ArrayForEach(place, occupancy){
-       		 printf("IS %d\n", place->valueint);
-       		 char buffer[40];
-       		 sprintf(buffer, "%s%d", area_name->valuestring, counter);
-       		 printf("\nbuffer: %s\n", buffer);
-					addValueToParking(buffer, time->valuestring, place->valueint); 
-					counter++; 
+```
+Next steps depends on this struct `static const struct ble_gatt_svc_def `.
+This struct is array of pointers to other service definitions. Example of a structure look like 
+```c
+// UUID - Universal Unique Identifier
+static const struct ble_gatt_svc_def gatt_svcs[] = {
+		{
+		.type = BLE_GATT_SVC_TYPE_PRIMARY,
+		.uuid = BLE_UUID16_DECLARE(0x180),                 // Define UUID for device type
+		.characteristics = (struct ble_gatt_chr_def[]) {
+				{
+				.uuid = BLE_UUID16_DECLARE(0xFEF4),           // Define UUID for reading
+				.flags = BLE_GATT_CHR_F_READ,
+				.access_cb = device_read
+				}, {
+				.uuid = BLE_UUID16_DECLARE(0xDEAD),           // Define UUID for writing
+				.flags = BLE_GATT_CHR_F_WRITE,
+				.access_cb = device_write
+				},
+				{0}
+			}
+		},
+		{0}
+	};
+```
+As we can see above we have a one device whitch is setup to be a primary one `.type = BLE_GATT_SVC_TYPE_PRIMARY,`.
+There are 2 types of uuid: 
+	1.  16 bit one -> This is addresed by a standard `.uuid = BLE_UUID16_DECLARE(0xFEF4)`
+	2.  Arbitary lenght -> Not addresed by a standard 
+
+ Characteristics are array of ptr of a struct `struct ble_gatt_chr_def[]`
+ Flags sets up are we reading or writing `BLE_GATT_CHR_F_WRITE, BLE_GATT_CHR_F_READ`.
+ Access_cb is a callback for what we runing if above event (we coude call it like that) trigered.
+ Examples of device_write and device_read callbacks :
+
+ #### deveice_read: 
+
+```c
+// Read data from ESP32 defined as server
+static int device_read(uint16_t con_handle, uint16_t attr_handle, 
+			struct ble_gatt_access_ctxt *ctxt, void *arg) {
+	os_mbuf_append(ctxt->om, "Data from the server", strlen("Data from the server"));
+	return 0;
+	}
+```
+
+#### device_write: 
+
+```c
+static int device_write(uint16_t conn_handle, uint16_t attr_handle,
+			struct ble_gatt_access_ctxt *ctxt, void *arg) {
+         printf("Data from the client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
+	return 0;
+	}
+```
+
+We register our struct
+
+```c
+	ble_gatts_count_cfg(gatt_svcs);            // 4 - Initialize NimBLE configuration - config gatt services
+	ble_gatts_add_svcs(gatt_svcs);             // 4 - Initialize NimBLE configuration - queues gatt services.
+```
+
+For our app to run we nead to have some way to synchronise the to devices aka to now to what to send a packets
+aka data. For that easy way is to have a globaly declared `uint8_t ble_addr_type;` and use this type of
+function to gets as a addres type.
+```c
+// Define the BLE connection
+void ble_app_advertise(void) {
+	// GAP - device name definition
+	struct ble_hs_adv_fields fields;
+	const char *device_name;
+	memset(&fields, 0, sizeof(fields));
+	device_name = ble_svc_gap_device_name(); // Read the BLE device name
+	fields.name = (uint8_t *)device_name;
+	fields.name_len = strlen(device_name);
+	fields.name_is_complete = 1;
+	ble_gap_adv_set_fields(&fields);
+
+	// GAP - device connectivity definition
+	struct ble_gap_adv_params adv_params;
+	memset(&adv_params, 0, sizeof(adv_params));
+	adv_params.conn_mode = BLE_GAP_CONN_MODE_UND; // connectable or non-connectable
+	adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN; // discoverable or non-discoverable
+	ble_gap_adv_start(ble_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
+	}
+
+// The application
+void ble_app_on_sync(void) {
+	ble_hs_id_infer_auto(0, &ble_addr_type); // Determines the best address type automatically
+	ble_app_advertise();                     // Define the BLE connection
+	}
+
+```
+in app_main() we call: 
+`ble_hs_cfg.sync_cb = ble_app_on_sync;      // 5 - Initialize application`
+
+Hear we have also a advertaysing function whitch will set up gap parameters. 
+And publish data. 
+Last step is to run the event loop(thread):
+```c
+void host_task(void *param) {
+	nimble_port_run(); // This function will return only when nimble_port_stop() is executed
+	}
+//In main
+ 	nimble_port_freertos_init(host_task);
+```
+ALL HANDLING EXAMPLE: 
+```c
+//TAG.H
+#ifndef _BLENIMBLE_H
+#define _BLENIMBLE_H
+#include "defs.h"
+
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+#include "esp_log.h"
+#include "esp_nimble_hci.h"
+#include "nimble/nimble_port.h"
+#include "nimble/nimble_port_freertos.h"
+#include "host/ble_hs.h"
+#include "services/gap/ble_svc_gap.h"
+#include "services/gatt/ble_svc_gatt.h"
+#include "sdkconfig.h"
+
+#define TAG "BLE-Nesto";
+uint8_t ble_addr_type;
+void ble_app_advertise(void);
+
+// Write data to ESP32 defined as server
+static int device_write(uint16_t conn_handle, uint16_t attr_handle,
+                        struct ble_gatt_access_ctxt *ctxt, void *arg) {
+	// printf("Data from the client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
+
+	char * data = (char *)ctxt->om->om_data;
+	printf("%d\n",strcmp(data, (char *)"LIGHT ON")==0);
+	if (strcmp(data, (char *)"LIGHT ON\0")==0) {
+		printf("LIGHT ON\n");
+		}
+	else if (strcmp(data, (char *)"LIGHT OFF\0")==0) {
+		printf("LIGHT OFF\n");
+		}
+	else if (strcmp(data, (char *)"FAN ON\0")==0) {
+		printf("FAN ON\n");
+		}
+	else if (strcmp(data, (char *)"FAN OFF\0")==0) {
+		printf("FAN OFF\n");
+		}
+	else {
+		printf("Data from the client: %.*s\n", ctxt->om->om_len, ctxt->om->om_data);
+		}
+
+
+	return 0;
+	}
+
+// Read data from ESP32 defined as server
+static int device_read(uint16_t con_handle, uint16_t attr_handle, 
+											 struct ble_gatt_access_ctxt *ctxt, void *arg) {
+	os_mbuf_append(ctxt->om, "Data from the server", strlen("Data from the server"));
+	return 0;
+	}
+
+// Array of pointers to other service definitions
+// UUID - Universal Unique Identifier
+static const struct ble_gatt_svc_def gatt_svcs[] = {
+		{
+		.type = BLE_GATT_SVC_TYPE_PRIMARY,
+		.uuid = BLE_UUID16_DECLARE(0x180),                 // Define UUID for device type
+		.characteristics = (struct ble_gatt_chr_def[]) {
+				{
+				.uuid = BLE_UUID16_DECLARE(0xFEF4),           // Define UUID for reading
+				.flags = BLE_GATT_CHR_F_READ,
+				.access_cb = device_read
+				}, {
+				.uuid = BLE_UUID16_DECLARE(0xDEAD),           // Define UUID for writing
+				.flags = BLE_GATT_CHR_F_WRITE,
+				.access_cb = device_write
+				},
+				{0}
+			}
+		},
+		{0}
+	};
+
+// BLE event handling
+static int ble_gap_event(struct ble_gap_event *event, void *arg) {
+	switch (event->type) {
+		// Advertise if connected
+		case BLE_GAP_EVENT_CONNECT:
+			ESP_LOGI("GAP", "BLE GAP EVENT CONNECT %s", event->connect.status == 0 ? "OK!" : "FAILED!");
+			if (event->connect.status != 0) {
+				ble_app_advertise();
 				}
-       
-    }
+			break;
+		// Advertise again after completion of the event
+		case BLE_GAP_EVENT_DISCONNECT:
+			ESP_LOGI("GAP", "BLE GAP EVENT DISCONNECTED");
+			break;
+		case BLE_GAP_EVENT_ADV_COMPLETE:
+			ESP_LOGI("GAP", "BLE GAP EVENT");
+			ble_app_advertise();
+			break;
+		default:
+			break;
+		}
+	return 0;
+	}
+
+// Define the BLE connection
+void ble_app_advertise(void) {
+	// GAP - device name definition
+	struct ble_hs_adv_fields fields;
+	const char *device_name;
+	memset(&fields, 0, sizeof(fields));
+	device_name = ble_svc_gap_device_name(); // Read the BLE device name
+	fields.name = (uint8_t *)device_name;
+	fields.name_len = strlen(device_name);
+	fields.name_is_complete = 1;
+	ble_gap_adv_set_fields(&fields);
+
+	// GAP - device connectivity definition
+	struct ble_gap_adv_params adv_params;
+	memset(&adv_params, 0, sizeof(adv_params));
+	adv_params.conn_mode = BLE_GAP_CONN_MODE_UND; // connectable or non-connectable
+	adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN; // discoverable or non-discoverable
+	ble_gap_adv_start(ble_addr_type, NULL, BLE_HS_FOREVER, &adv_params, ble_gap_event, NULL);
+	}
+
+// The application
+void ble_app_on_sync(void) {
+	ble_hs_id_infer_auto(0, &ble_addr_type); // Determines the best address type automatically
+	ble_app_advertise();                     // Define the BLE connection
+	}
+
+// The infinite task
+void host_task(void *param) {
+	nimble_port_run(); // This function will return only when nimble_port_stop() is executed
+	}
+
+#endif
+```
+```c
+//MAIN
+#include "tag.h"
+void app_main()
+{
+    nvs_flash_init();                          // 1 - Initialize NVS flash using
+    // esp_nimble_hci_and_controller_init();      // 2 - Initialize ESP controller
+    nimble_port_init();                        // 3 - Initialize the host stack
+    ble_svc_gap_device_name_set("BLE-Server"); // 4 - Initialize NimBLE configuration - server name
+    ble_svc_gap_init();                        // 4 - Initialize NimBLE configuration - gap service
+    ble_svc_gatt_init();                       // 4 - Initialize NimBLE configuration - gatt service
+    ble_gatts_count_cfg(gatt_svcs);            // 4 - Initialize NimBLE configuration - config gatt services
+    ble_gatts_add_svcs(gatt_svcs);             // 4 - Initialize NimBLE configuration - queues gatt services.
+    ble_hs_cfg.sync_cb = ble_app_on_sync;      // 5 - Initialize application
+    nimble_port_freertos_init(host_task);      // 6 - Run the thread
+}
+```
+### iBeacon scaner
+```c
+
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include "nvs.h"
+#include "nvs_flash.h"
+
+#include "esp_bt.h"
+#include "esp_gap_ble_api.h"
+#include "esp_gattc_api.h"
+#include "esp_gatt_defs.h"
+#include "esp_bt_main.h"
+#include "esp_gatt_common_api.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+
+#define TAG "ble"
 
 
-    cJSON_Delete(json);
-	
-		printParking();
-	
-	
-	
+#define ENDIAN_CHANGE_U16(x) ((((x)&0xFF00)>>8) + (((x)&0xFF)<<8))
+
+typedef struct {
+	uint8_t flags[3];
+	uint8_t length;
+	uint8_t type;
+	uint16_t company_id;
+	uint16_t beacon_type;
+	} __attribute__((packed)) esp_ble_ibeacon_head_t;
+
+typedef struct {
+	uint8_t proximity_uuid[16];
+	uint16_t major;
+	uint16_t minor;
+	int8_t measured_power;
+	} __attribute__((packed)) esp_ble_ibeacon_vendor_t;
+
+
+typedef struct {
+	esp_ble_ibeacon_head_t ibeacon_head;
+	esp_ble_ibeacon_vendor_t ibeacon_vendor;
+	} __attribute__((packed)) esp_ble_ibeacon_t;
+
+
+/* For iBeacon packet format, please refer to Apple "Proximity Beacon Specification" doc */
+/* Constant part of iBeacon data */
+static esp_ble_ibeacon_head_t ibeacon_common_head;
+
+bool esp_ble_is_ibeacon_packet (uint8_t *adv_data, uint8_t adv_data_len);
+
+esp_err_t esp_ble_config_ibeacon_data (esp_ble_ibeacon_vendor_t *vendor_config, esp_ble_ibeacon_t *ibeacon_adv_data);
+
+
+
+
+bool esp_ble_is_ibeacon_packet (uint8_t *adv_data, uint8_t adv_data_len) {
+	bool result = true;
+
+	if ((adv_data != NULL) && (adv_data_len == 0x1E)) {
+		if (!memcmp(adv_data, (uint8_t*)&ibeacon_common_head, sizeof(ibeacon_common_head))) {
+			result = true;
+			}
+		}
+
+	return result;
+	}
+
+
+
+void init_nvs(void) {
+	esp_err_t ret = nvs_flash_init();
+	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		ret = nvs_flash_init();
+		}
+	ESP_ERROR_CHECK(ret);
+	}
+
+void init_ble(void) {
+	esp_err_t ret;
+
+	// Initialize the Bluetooth controller
+	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+	ret = esp_bt_controller_init(&bt_cfg);
+	if (ret) {
+		ESP_LOGE(TAG, "Failed to initialize BT controller: %s", esp_err_to_name(ret));
+		return;
+		}
+
+	// Enable the Bluetooth controller
+	ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+	if (ret) {
+		ESP_LOGE(TAG, "Failed to enable BT controller: %s", esp_err_to_name(ret));
+		return;
+		}
+
+	// Initialize Bluedroid
+	ret = esp_bluedroid_init();
+	if (ret) {
+		ESP_LOGE(TAG, "Failed to initialize Bluedroid: %s", esp_err_to_name(ret));
+		return;
+		}
+
+	// Enable Bluedroid
+	ret = esp_bluedroid_enable();
+	if (ret) {
+		ESP_LOGE(TAG, "Failed to enable Bluedroid: %s", esp_err_to_name(ret));
+		return;
+		}
+	}
+
+static esp_ble_scan_params_t ble_scan_params = {
+	.scan_type = BLE_SCAN_TYPE_ACTIVE,
+	.own_addr_type = BLE_ADDR_TYPE_PUBLIC,
+	.scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
+	.scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE,
+	.scan_interval = 0x50,
+	.scan_window = 0x30,
+	};
+
+typedef esp_ble_adv_data_type bleEnum;
+
+static void get_device_name(esp_ble_gap_cb_param_t *param, char *name, int name_len) {
+	uint8_t *adv_name = NULL;
+	uint8_t adv_name_len = 0;
+
+	// Extract the device name from the advertisement data
+	adv_name = esp_ble_resolve_adv_data(param->scan_rst.ble_adv, ESP_BLE_AD_TYPE_NAME_CMPL, &adv_name_len);
+
+	if (adv_name != NULL && adv_name_len > 0) {
+		// Copy the device name to the output buffer
+		snprintf(name, name_len, "%.*s", adv_name_len, adv_name);
+		}
+	else {
+		// If no name is found, show "Unknown device"
+		snprintf(name, name_len, "Unknown device");
+		}
+	}
+
+void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
+	switch (event) {
+		case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
+			if (param->scan_param_cmpl.status == ESP_BT_STATUS_SUCCESS) {
+				ESP_LOGI(TAG, "Scan parameters set, starting scan...");
+				esp_ble_gap_start_scanning(10);  // Scan for 10 seconds
+				}
+			else {
+				ESP_LOGE(TAG, "Failed to set scan parameters");
+				}
+			break;
+
+		case ESP_GAP_BLE_SCAN_RESULT_EVT:
+			if (param->scan_rst.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
+				// Get the device name
+				char device_name[64];
+				get_device_name(param, device_name, sizeof(device_name));
+
+				// Log the device name and RSSI
+				//ESP_LOGI(TAG, "Device found: Name: %s, RSSI %d", device_name, param->scan_rst.rssi);
+				//if (esp_ble_is_ibeacon_packet(param->scan_rst.ble_adv,param->scan_rst.adv_data_len))
+					{
+					esp_ble_ibeacon_t *ibeacon_data = (esp_ble_ibeacon_t*)(param->scan_rst.ble_adv);
+					//	ESP_LOGI(TAG, "----------iBeacon Found----------");
+					///ESP_LOGI(TAG, "Device address: "ESP_BD_ADDR_STR"", ESP_BD_ADDR_HEX(param->scan_rst.bda));
+					uint16_t major = ENDIAN_CHANGE_U16(ibeacon_data->ibeacon_vendor.major);
+					uint16_t minor = ENDIAN_CHANGE_U16(ibeacon_data->ibeacon_vendor.minor);
+
+					if(major == 0  || minor == 0 ) {
+						break;
+						}
+					ESP_LOG_BUFFER_HEX("\n\n\nUUID", ibeacon_data->ibeacon_vendor.proximity_uuid,
+					                   ESP_UUID_LEN_128);
+					printf("\n");
+
+					printf("\tMajor: 0x%04x (%d)\n", major, major);
+					printf("\tMinor: 0x%04x (%d)\n", minor, minor);
+					printf("\tMeasured power (RSSI at a 1m distance): %d dBm\n", ibeacon_data->ibeacon_vendor.measured_power);
+					printf("\tRSSI of packet: %d dbm\n", param->scan_rst.rssi);
+					}
+
+				}
+			break;
+
+		case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
+			ESP_LOGI(TAG, "Scan complete");
+			break;
+
+		default:
+			break;
+		}
+	}
+
+
+void app_main(void) {
+	// Initialize NVS
+	init_nvs();
+
+	// Initialize BLE
+	init_ble();
+
+	// Register GAP callback
+	esp_ble_gap_register_callback(gap_event_handler);
+
+	// Set scan parameters
+	esp_err_t ret = esp_ble_gap_set_scan_params(&ble_scan_params);
+	if (ret == ESP_OK) {
+		ESP_LOGI(TAG, "BLE scan parameters set successfully");
+		}
+	else {
+		ESP_LOGE(TAG, "Failed to set scan params: %s", esp_err_to_name(ret));
+		}
+
+	while(1) {
+		esp_ble_gap_start_scanning(1000);
+		vTaskDelay(10000);
+		esp_ble_gap_stop_scanning();
+		vTaskDelay(1000);
+
+		}
+	}
+
+
 
 ```
