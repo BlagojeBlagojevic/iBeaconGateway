@@ -106,19 +106,21 @@ extern void mqtt_app_start(void) {
 	ESP_LOGI(TAG, "Starting mqtt");
 	const esp_mqtt_client_config_t mqtt_cfg = {
 		.broker = {
+			//.address.hostname = "127.0.0.1",
+			//.address.port = 1883,
 			.address.uri = MQTTS,
 			//.verification.use_global_ca_store = false,
 			//.verification.certificate = NULL,
-			.verification = {
-				.certificate = (const char*)cert,
-				},
+			///.verification = {
+			//	.certificate = (const char*)cert,
+		//		},
 
 			//.verification.skip_cert_common_name_check = true,
 			},
-		. credentials = {
-			.username =  USER_CRED,
-			.authentication.password = PASS_CRED,
-			},
+		//. credentials = {
+	///		.username =  USER_CRED,
+	//		.authentication.password = PASS_CRED,
+	//		},
 		};
 	ESP_LOGI(TAG, "%s", cert);
 	client = esp_mqtt_client_init(&mqtt_cfg);
