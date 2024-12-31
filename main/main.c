@@ -17,8 +17,10 @@
 void app_main() {
 // ethernet_init();
 	//BLOCK_TASK(ETHERNET, 100);
-
-
+	const uint8_t temp[] = {0xca, 0xfe, 0xf0, 0x6d, 0x4a, 0xff, 0x42, 0x52,
+	 0x94, 0x8e, 0x68, 0x56, 0x7a, 0x75, 0xc6, 0x39};
+	memcpy(saved_uuids[0], temp, sizeof(temp)*15);
+	num_reg_uuid++;
 	const esp_vfs_spiffs_conf_t conf = {
 		.base_path = "/storage",
 		.partition_label = NULL,
