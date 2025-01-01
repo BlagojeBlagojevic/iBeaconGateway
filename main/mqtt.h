@@ -47,9 +47,11 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 		case MQTT_EVENT_DATA:
 			//TBD WAT WE ARE SETING UP HEAR
 			ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-			printf("\nTOPIC=%.*s\r\n", event->topic_len, event->topic);
-			printf("DATA=%.*s\r\n", event->data_len, event->data);
-			if(!strcmp(topics[ADD_UUID], event->topic)) {
+			printf("\nTOPIC= %.*s\r\n", event->topic_len, event->topic);
+			printf("DATA= %.*s\r\n", event->data_len, event->data);
+			printf("addd\n\n");
+			if(!strncmp(event->topic, topics[ADD_UUID], event->topic_len)) {
+				printf("add uuid\n\n");
 				int is = 0;
 				for(int i = 0; i < num_reg_uuid; i++){
 					if(!memcmp(saved_uuids[i], event->data, sizeof(uint8_t)*16)){
@@ -57,8 +59,27 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 						break;
 					}
 				}
-				if(!is)
-					memcpy(saved_uuids[num_reg_uuid++], event->data, sizeof(uint8_t)*16);
+				if(!is){
+					printf("Does not exist\n");
+					uint8_t data[event->data_len];
+					//data = *event->data;
+					memcpy(data, event->data, event->data_len);
+					printf("DATA= %.*s\r\n", event->data_len, data);
+					uint8_t temp[16];
+					int counter = 0;
+					for(int i = 0; i < 16; i++){
+						char tempS[2];
+						tempS[0] = data[counter++];
+						tempS[1] = data[counter++];
+						printf("%s ", tempS);
+						counter++; 	
+						temp[i] = (uint8_t)ahex2int(tempS[0], tempS[1]);
+					}
+					if(num_reg_uuid > MAX_TAGS){
+						memcpy(saved_uuids[num_reg_uuid++], temp, sizeof(uint8_t)*16);
+					}
+					ESP_LOG_BUFFER_HEX("\n\n\nUUID", temp, ESP_UUID_LEN_128);
+				}	
 				}
 			else if(!strcmp(topics[REMOVE_UUID], event->topic)) {
 				for(uint8_t i = 0; i < num_reg_uuid; i++) {
@@ -175,10 +196,4 @@ extern void sendSavedTasks(void* parms) {
 		DELAY(10000);
 		}
 	}
-
-
-
-
-//   mqtt_app_start();
-
 #endif
