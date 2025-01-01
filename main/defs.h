@@ -212,6 +212,15 @@ static inline double distance(int rssi, int ref){
 		}
 
 
+// makes a number from two ascii hexa characters
+int ahex2int(char a, char b){
+
+    a = (a <= '9') ? a - '0' : (a & 0x7) + 9;
+    b = (b <= '9') ? b - '0' : (b & 0x7) + 9;
+
+    return (a << 4) + b;
+}
+
 
 
 
@@ -222,6 +231,8 @@ volatile int countSubsripcitionEvents = 0;
 volatile int countNumOfWritenFilesIntoASpiff = 0;
 
 struct timeval *tv = NULL;
+
+
 
 
 #endif

@@ -1,4 +1,3 @@
-
 #include "defs.h"
 //#define ETHERNET_IMPLEMENTATNION
 //#include "ethernet.h"
