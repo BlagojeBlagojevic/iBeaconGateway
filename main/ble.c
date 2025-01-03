@@ -176,12 +176,28 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 					sprintf(timeS, "%d:%d:%d %d. %d. %d.", ttm.tm_hour+1,ttm.tm_min,ttm.tm_sec
 					        ,ttm.tm_mday, ttm.tm_mon+1, ttm.tm_year%100);
 					printf("Time: %s\n", timeS);
-					if(isUuidRegister(ibeacon_data->ibeacon_vendor.proximity_uuid))
+					if(isUuidRegister(ibeacon_data->ibeacon_vendor.proximity_uuid)){
 						addTag(timeS, (int)major, (int)minor, param->scan_rst.rssi, 
 									 ibeacon_data->ibeacon_vendor.measured_power, 
 									 ibeacon_data->ibeacon_vendor.proximity_uuid);
-					}
+						
+						if(justSend){
+							Tag tempTag;
+							strcpy(tempTag.time, timeS);
+							tempTag.majorID = major;
+							tempTag.minorID = minor;
+							memcpy(tempTag.proximity_uuid, 
+									ibeacon_data->ibeacon_vendor.proximity_uuid,
+									sizeof(uint8_t)*16);
+							tempTag.rssi = param->scan_rst.rssi;
+							tempTag.refpower = ibeacon_data->ibeacon_vendor.measured_power;
+							//tempTag.systemTime = esp_timer_get_time();
+							tempTag.isStanding = 0;
 
+							PUBLISH_TAG(tempTag, ADD_TAG);
+						}
+					}
+				}
 				}
 			break;
 
