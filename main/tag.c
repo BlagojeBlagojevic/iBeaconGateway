@@ -196,6 +196,8 @@ extern void checkIfTagIsForRemovalTask(void* parms) {
 extern int isUuidRegister(uint8_t *uuid){
 	int is = 0;
 	for(int i = 0; i < num_reg_uuid; i++){
+		ESP_LOG_BUFFER_HEX("\n\n\nUUID", saved_uuids[i],
+					                   ESP_UUID_LEN_128);
 		if(!memcmp(uuid, saved_uuids[i], sizeof(uint8_t) * 16)){
 			return 1;
 		}
