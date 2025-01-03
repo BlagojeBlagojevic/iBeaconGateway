@@ -75,13 +75,13 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 						counter++; 	
 						temp[i] = (uint8_t)ahex2int(tempS[0], tempS[1]);
 					}
-					if(num_reg_uuid > MAX_TAGS){
+					if(num_reg_uuid < MAX_TAGS){
 						memcpy(saved_uuids[num_reg_uuid++], temp, sizeof(uint8_t)*16);
 					}
 					ESP_LOG_BUFFER_HEX("\n\n\nUUID", temp, ESP_UUID_LEN_128);
 				}	
 				}
-			else if(!strcmp(topics[REMOVE_UUID], event->topic)) {
+			else if(!strncmp(event->topic, topics[REMOVE_UUID], event->topic_len )) {
 				for(uint8_t i = 0; i < num_reg_uuid; i++) {
 					if(!memcmp(saved_uuids[i], event->data, sizeof(uint8_t)*16)) {
 						for(uint8_t j = i; j < num_reg_uuid - 1; j++) {
@@ -92,17 +92,25 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 						}
 					}
 				}
-			else if(!strcmp(topics[ENV_FACTOR], event->topic)) {
+			else if(!strncmp(event->topic, topics[ENV_FACTOR], event->topic_len )) {
+				
 				enviroment_factor = strtof(event->data, NULL);
+				printf("ENV = %f\n", enviroment_factor);
 				}
-			else if(!strcmp(topics[POS_X], event->topic)) {
+			else if(!strncmp(event->topic, topics[POS_X], event->topic_len )) {
 				pos_x = strtof(event->data, NULL);
+				printf("POSITON_X = %f\n", pos_x);
 				}
-			else if(!strcmp(topics[POS_Y], event->topic)) {
+			else if(!strncmp(event->topic, topics[POS_Y], event->topic_len )) {
 				pos_y = strtof(event->data, NULL);
+				printf("POSITION_Y = %f\n", pos_y);
 				}
-			else if(!strcmp(topics[RSSI_TRESHOLD], event->topic)){
+			else if(!strncmp(event->topic, topics[RSSI_TRESHOLD], event->topic_len )){
 				rssi_treshold = (int)atoi(event->data);
+				printf("RSSI treshold = %d\n", rssi_treshold);
+			}
+			else if(!strncmp(event->topic, topics[STREAMING], event->topic_len )){
+				justSend = (int)atoi(event->data);
 			}
 			break;
 		case MQTT_EVENT_ERROR:
