@@ -7,11 +7,6 @@
 #include "parking.h"
 #define tag  "Server"
 
-
-
-
-
-
 extern void server_init();
 void _get_page_handler(void *req);
 void _post_change_stateBle(void *params);
