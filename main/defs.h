@@ -113,6 +113,7 @@ typedef enum {
 	POS_X,
 	POS_Y,
 	RSSI_TRESHOLD,
+	STREAMING,
 	NUM_OF_TOPICS
 	} Topics;
 //PRAVI PUT DO
@@ -125,7 +126,8 @@ const char* topics[]= {
 	"ENV_FACTOR",
 	"POS_X",
 	"POS_Y",
-	"RSSI_TRESHOLD"
+	"RSSI_TRESHOLD",
+	"STREAMING",
 	"NUM_OF_TOPICS",
 	};
 
@@ -231,8 +233,6 @@ volatile int countSubsripcitionEvents = 0;
 volatile int countNumOfWritenFilesIntoASpiff = 0;
 
 struct timeval *tv = NULL;
-
-
-
+volatile int justSend = 1;
 
 #endif
