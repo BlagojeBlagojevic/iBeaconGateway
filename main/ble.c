@@ -1,252 +1,209 @@
-
+#ifndef MQTT_H
+#define MQTT_H
 #include "defs.h"
+#include "cert.h"
 #include "tag.h"
-#define TAG "ble"
-#define ENDIAN_CHANGE_U16(x) ((((x)&0xFF00)>>8) + (((x)&0xFF)<<8))
-
-const int64_t startTime = 0;
-
-typedef struct {
-	uint8_t flags[3];
-	uint8_t length;
-	uint8_t type;
-	uint16_t company_id;
-	uint16_t beacon_type;
-	} __attribute__((packed)) esp_ble_ibeacon_head_t;
-
-typedef struct {
-	uint8_t proximity_uuid[16];
-	uint16_t major;
-	uint16_t minor;
-	int8_t measured_power;
-	} __attribute__((packed)) esp_ble_ibeacon_vendor_t;
-
-
-typedef struct {
-	esp_ble_ibeacon_head_t ibeacon_head;
-	esp_ble_ibeacon_vendor_t ibeacon_vendor;
-	} __attribute__((packed)) esp_ble_ibeacon_t;
-
-
-/* For iBeacon packet format, please refer to Apple "Proximity Beacon Specification" doc */
-/* Constant part of iBeacon data */
-static esp_ble_ibeacon_head_t ibeacon_common_head;
-
-bool esp_ble_is_ibeacon_packet (uint8_t *adv_data, uint8_t adv_data_len);
-
-esp_err_t esp_ble_config_ibeacon_data (esp_ble_ibeacon_vendor_t *vendor_config, esp_ble_ibeacon_t *ibeacon_adv_data);
+#define TAG "MQTT"
 
 
 
 
-bool esp_ble_is_ibeacon_packet (uint8_t *adv_data, uint8_t adv_data_len) {
-	bool result = true;
+//TBD CHANGE A NAME OF TOPICS
+//DO WE SEND SOME TEST STUF TO NOW ARE WE ARE CONECTED
+extern void mqtt_app_start(void);
+extern void sendSavedTasks(void* parms);
 
-	if ((adv_data != NULL) && (adv_data_len == 0x1E)) {
-		if (!memcmp(adv_data, (uint8_t*)&ibeacon_common_head, sizeof(ibeacon_common_head))) {
-			result = true;
-			}
-		}
+static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
+	esp_mqtt_client_handle_t client = event->client;
+	switch (event->event_id) {
+		//IF WE CONECT WE NEED TO SUBSCRIBE TO ALL TOPIC
 
-	return result;
-	}
-
-
-
-static void init_nvs(void) {
-	esp_err_t ret = nvs_flash_init();
-	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		ret = nvs_flash_init();
-		}
-	ESP_ERROR_CHECK(ret);
-	}
-
-static void init_ble(void) {
-	esp_err_t ret;
-
-	// Initialize the Bluetooth controller
-	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-	ret = esp_bt_controller_init(&bt_cfg);
-	if (ret) {
-		ESP_LOGE(TAG, "Failed to initialize BT controller: %s", esp_err_to_name(ret));
-		return;
-		}
-
-	// Enable the Bluetooth controller
-	ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
-	if (ret) {
-		ESP_LOGE(TAG, "Failed to enable BT controller: %s", esp_err_to_name(ret));
-		return;
-		}
-
-	// Initialize Bluedroid
-	ret = esp_bluedroid_init();
-	if (ret) {
-		ESP_LOGE(TAG, "Failed to initialize Bluedroid: %s", esp_err_to_name(ret));
-		return;
-		}
-
-	// Enable Bluedroid
-	ret = esp_bluedroid_enable();
-	if (ret) {
-		ESP_LOGE(TAG, "Failed to enable Bluedroid: %s", esp_err_to_name(ret));
-		return;
-		}
-	}
-
-static esp_ble_scan_params_t ble_scan_params = {
-	.scan_type = BLE_SCAN_TYPE_ACTIVE,
-	.own_addr_type = BLE_ADDR_TYPE_PUBLIC,
-	.scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL,
-	.scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE,
-	.scan_interval = 0x50,
-	.scan_window = 0x30,
-	};
-
-typedef esp_ble_adv_data_type bleEnum;
-
-static void get_device_name(esp_ble_gap_cb_param_t *param, char *name, int name_len) {
-	uint8_t *adv_name = NULL;
-	uint8_t adv_name_len = 0;
-
-	// Extract the device name from the advertisement data
-	adv_name = esp_ble_resolve_adv_data(param->scan_rst.ble_adv, ESP_BLE_AD_TYPE_NAME_CMPL, &adv_name_len);
-
-	if (adv_name != NULL && adv_name_len > 0) {
-		// Copy the device name to the output buffer
-		snprintf(name, name_len, "%.*s", adv_name_len, adv_name);
-		}
-	else {
-		// If no name is found, show "Unknown device"
-		snprintf(name, name_len, "Unknown device");
-		}
-	}
-
-static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-	switch (event) {
-		case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
-			if (param->scan_param_cmpl.status == ESP_BT_STATUS_SUCCESS) {
-				ESP_LOGI(TAG, "Scan parameters set, starting scan...");
-				//esp_ble_gap_start_scanning(10);  // Scan for 10 seconds
+		case MQTT_EVENT_CONNECTED:
+			ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED\n");
+			SET_STATE(MQTT);
+			for(int i = 0; i < NUM_OF_TOPICS; i++) {
+				esp_mqtt_client_subscribe(client, topics[i], 0);
 				}
-			else {
-				ESP_LOGE(TAG, "Failed to set scan parameters");
-				}
+
+			//esp_mqtt_client_publish(client, "my_topic", "Hi to all from ESP32 .........", 0, 1, 0);
 			break;
-
-		case ESP_GAP_BLE_SCAN_RESULT_EVT:
-			if (param->scan_rst.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
-				// Get the device name
-				char device_name[64];
-				get_device_name(param, device_name, sizeof(device_name));
-
-				// Log the device name and RSSI
-				//ESP_LOGI(TAG, "Device found: Name: %s, RSSI %d", device_name, param->scan_rst.rssi);
-				//if (esp_ble_is_ibeacon_packet(param->scan_rst.ble_adv,param->scan_rst.adv_data_len))
-					{
-					esp_ble_ibeacon_t *ibeacon_data = (esp_ble_ibeacon_t*)(param->scan_rst.ble_adv);
-					//	ESP_LOGI(TAG, "----------iBeacon Found----------");
-					///ESP_LOGI(TAG, "Device address: "ESP_BD_ADDR_STR"", ESP_BD_ADDR_HEX(param->scan_rst.bda));
-					uint16_t major = ENDIAN_CHANGE_U16(ibeacon_data->ibeacon_vendor.major);
-					uint16_t minor = ENDIAN_CHANGE_U16(ibeacon_data->ibeacon_vendor.minor);
-
-					if(major == 0  || minor == 0 ) {
+		case MQTT_EVENT_DISCONNECTED:
+			countSubsripcitionEvents = 0;
+			CLEAR_STATE(MQTT);
+			ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+			break;
+		case MQTT_EVENT_SUBSCRIBED:
+			//PROBOBLY MAKE SOME STUF TO BE ABEL TO SEND A DATA MAYBE REGISTER IT IN A STATE
+			ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d\n", event->msg_id);
+			countSubsripcitionEvents++;
+			break;
+		case MQTT_EVENT_UNSUBSCRIBED:
+			//TBD SHOUD NOT EXIST AS A EVENT
+			ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+			break;
+		case MQTT_EVENT_PUBLISHED:
+			ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+			break;
+		case MQTT_EVENT_DATA:
+			//TBD WAT WE ARE SETING UP HEAR
+			ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+			printf("\nTOPIC= %.*s\r\n", event->topic_len, event->topic);
+			printf("DATA= %.*s\r\n", event->data_len, event->data);
+			printf("addd\n\n");
+			if(!strncmp(event->topic, topics[ADD_UUID], event->topic_len)) {
+				printf("add uuid\n\n");
+				
+				{
+					
+					uint8_t data[event->data_len];
+					//data = *event->data;
+					memcpy(data, event->data, event->data_len);
+					printf("DATA= %.*s\r\n", event->data_len, data);
+					uint8_t temp[16];
+					int counter = 0;
+					for(int i = 0; i < 16; i++){
+						char tempS[2];
+						tempS[0] = data[counter++];
+						tempS[1] = data[counter++];
+						printf("%s ", tempS);
+						counter++; 	
+						temp[i] = (uint8_t)ahex2int(tempS[0], tempS[1]);
+					}
+				int is = 0;
+				for(int i = 0; i < num_reg_uuid+1; i++){
+					if(!memcmp(saved_uuids[i], temp, sizeof(uint8_t)*16)){
+						is = 1;
 						break;
-						}
-					ESP_LOG_BUFFER_HEX("\n\n\nUUID", ibeacon_data->ibeacon_vendor.proximity_uuid,
-					                   ESP_UUID_LEN_128);
-					printf("\n");
-					//printf("\tUUID: %s\n", (char*)ibeacon_data->ibeacon_vendor.proximity_uuid);
-					printf("\tMajor: 0x%04x (%d)\n", major, major);
-					printf("\tMinor: 0x%04x (%d)\n", minor, minor);
-					printf("\tMeasured power (RSSI at a 1m distance): %d dBm\n", ibeacon_data->ibeacon_vendor.measured_power);
-					printf("\tRSSI of packet: %d dbm\n", param->scan_rst.rssi);
-					time_t now = 0;
-					time(&now);
-					now+=startTime;
-					struct tm   ttm;
-					ttm = * localtime(&now);
-					printf("%jd seconds since the epoch began\n", (intmax_t)now);
-					//const int year =
-					//	const int h = now%3600;
-					//	const int min = (now - h*3600)/60;
-					//	const int sec = now%60;
-					char timeS[40];
-					sprintf(timeS, "%d:%d:%d %d. %d. %d.", ttm.tm_hour+1,ttm.tm_min,ttm.tm_sec
-					        ,ttm.tm_mday, ttm.tm_mon+1, ttm.tm_year%100);
-					printf("Time: %s\n", timeS);
-					if(isUuidRegister(ibeacon_data->ibeacon_vendor.proximity_uuid)){
-						addTag(timeS, (int)major, (int)minor, param->scan_rst.rssi, 
-									 ibeacon_data->ibeacon_vendor.measured_power, 
-									 ibeacon_data->ibeacon_vendor.proximity_uuid);
-						
-						if(justSend){
-							Tag tempTag;
-							strcpy(tempTag.time, timeS);
-							tempTag.majorID = major;
-							tempTag.minorID = minor;
-							memcpy(tempTag.proximity_uuid, 
-									ibeacon_data->ibeacon_vendor.proximity_uuid,
-									sizeof(uint8_t)*16);
-							tempTag.rssi = param->scan_rst.rssi;
-							tempTag.refpower = ibeacon_data->ibeacon_vendor.measured_power;
-							//tempTag.systemTime = esp_timer_get_time();
-							tempTag.isStanding = 0;
-
-							PUBLISH_TAG(tempTag, ADD_TAG);
+					}
+				}
+					if(num_reg_uuid < MAX_TAGS && !is){
+						printf("\nDoes not exist %d\n", num_reg_uuid);
+						memcpy(saved_uuids[num_reg_uuid++], temp, sizeof(uint8_t)*16);
+					}
+					ESP_LOG_BUFFER_HEX("\n\n\nUUID", temp, ESP_UUID_LEN_128);
+				}	
+				}
+			else if(!strncmp(event->topic, topics[REMOVE_UUID], event->topic_len )) {
+				for(uint8_t i = 0; i < num_reg_uuid; i++) {
+					if(!memcmp(saved_uuids[i], event->data, sizeof(uint8_t)*16)) {
+						for(uint8_t j = i; j < num_reg_uuid - 1; j++) {
+							memcpy(&saved_uuids[j], &saved_uuids[j + 1], sizeof(uint8_t) * 16);
+							}
+						num_reg_uuid--;
+						break;
 						}
 					}
 				}
+			else if(!strncmp(event->topic, topics[ENV_FACTOR], event->topic_len )) {
+				
+				enviroment_factor = strtof(event->data, NULL);
+				printf("ENV = %f\n", enviroment_factor);
 				}
+			else if(!strncmp(event->topic, topics[POS_X], event->topic_len )) {
+				pos_x = strtof(event->data, NULL);
+				printf("POSITON_X = %f\n", pos_x);
+				}
+			else if(!strncmp(event->topic, topics[POS_Y], event->topic_len )) {
+				pos_y = strtof(event->data, NULL);
+				printf("POSITION_Y = %f\n", pos_y);
+				}
+			else if(!strncmp(event->topic, topics[RSSI_TRESHOLD], event->topic_len )){
+				rssi_treshold = (int)atoi(event->data);
+				printf("RSSI treshold = %d\n", rssi_treshold);
+			}
+			else if(!strncmp(event->topic, topics[STREAMING], event->topic_len )){
+				justSend = (int)atoi(event->data);
+			}
 			break;
-
-		case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
-			ESP_LOGI(TAG, "Scan complete");
+		case MQTT_EVENT_ERROR:
+			//TBD WHAT IF ERROR IS HAPANING
+			//ERROR IF WE CHANGE A CERT OR SOMETHING
+			ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
 			break;
-
 		default:
+			ESP_LOGI(TAG, "Other event id:%d", event->event_id);
 			break;
 		}
+	return ESP_OK;
 	}
 
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
 
-extern void bleTaskScane(void* parms) {
-	vTaskDelay(2000);
+	mqtt_event_handler_cb(event_data);
+	vTaskDelay(1);
+	}
+
+extern void mqtt_app_start(void) {
+	ESP_LOGI(TAG, "Starting mqtt");
+	const esp_mqtt_client_config_t mqtt_cfg = {
+		.broker = {
+			//.address.hostname = "127.0.0.1",
+			//.address.port = 1883,
+			.address.uri = MQTTS,
+			//.verification.use_global_ca_store = false,
+			//.verification.certificate = NULL,
+			///.verification = {
+			//	.certificate = (const char*)cert,
+		//		},
+
+			//.verification.skip_cert_common_name_check = true,
+			},
+		//. credentials = {
+	///		.username =  USER_CRED,
+	//		.authentication.password = PASS_CRED,
+	//		},
+		};
+	ESP_LOGI(TAG, "%s", cert);
+	client = esp_mqtt_client_init(&mqtt_cfg);
+	//ESP_LOGI(TAG, "Starting mqtt");
+	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
+	esp_mqtt_client_start(client);
+	}
+
+extern void sendSavedTasks(void* parms) {
 	while(1) {
-		esp_ble_gap_start_scanning(1000);
-		vTaskDelay(2000);
-		esp_ble_gap_stop_scanning();
-		}
 
+		while(countNumOfWritenFilesIntoASpiff > 0 && GET_STATE(MQTT)
+		      && (countSubsripcitionEvents == NUM_OF_TOPICS)) {
+			char filePath[20];
+			sprintf(filePath, "/storage/%d.bin", countNumOfWritenFilesIntoASpiff);
+			ESP_LOGI("mqtt", "File path (%s)\n", filePath);
+			FILE *f = fopen(filePath, "rb");
+			if(f == NULL) {
+				printf("Coude not open a file (%s)\n", filePath);
+				countNumOfWritenFilesIntoASpiff--;
+				break;
+
+				}
+
+			Topics top;
+			int size;
+			fread(&top, sizeof(Topics), 1, f);
+			fread(&size, sizeof(int), 1, f); //SHOUDE BE THE SAME MAYBE ERROR CHECKING I COURUPTED
+			switch(top) {
+				case ADD_TAG: {
+						Tag tempTag;
+						fread(&tempTag, sizeof(Tag), 1, f);
+						PUBLISH_TAG(tempTag, ADD_TAG);
+						break;
+						}
+				case REMOVE_TAG : {
+						Tag tempTag;
+						fread(&tempTag, sizeof(Tag), 1, f);
+						PUBLISH_TAG(tempTag, REMOVE_TAG);
+						break;
+						}
+
+				default: {
+						ESP_LOGI("mqtt", "We shoud not get hear\n");
+						break;
+						}
+				}
+			fclose(f);
+			countNumOfWritenFilesIntoASpiff--;
+			DELAY(100);
+			}
+		DELAY(10000);
+		}
 	}
-
-/*
-void app_main(void) {
-	// Initialize NVS
-	init_nvs();
-
-	// Initialize BLE
-	init_ble();
-
-	// Register GAP callback
-	esp_ble_gap_register_callback(gap_event_handler);
-
-	// Set scan parameters
-	esp_err_t ret = esp_ble_gap_set_scan_params(&ble_scan_params);
-	if (ret == ESP_OK) {
-		ESP_LOGI(TAG, "BLE scan parameters set successfully");
-		}
-	else {
-		ESP_LOGE(TAG, "Failed to set scan params: %s", esp_err_to_name(ret));
-		}
-
-	while(1) {
-		esp_ble_gap_start_scanning(1000);
-		vTaskDelay(10000);
-		esp_ble_gap_stop_scanning();
-		vTaskDelay(1000);
-
-		}
-	}
-*/
+#endif
