@@ -52,15 +52,9 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 			printf("addd\n\n");
 			if(!strncmp(event->topic, topics[ADD_UUID], event->topic_len)) {
 				printf("add uuid\n\n");
-				int is = 0;
-				for(int i = 0; i < num_reg_uuid; i++){
-					if(!memcmp(saved_uuids[i], event->data, sizeof(uint8_t)*16)){
-						is = 1;
-						break;
-					}
-				}
-				if(!is){
-					printf("Does not exist\n");
+				
+				{
+					
 					uint8_t data[event->data_len];
 					//data = *event->data;
 					memcpy(data, event->data, event->data_len);
@@ -75,7 +69,15 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 						counter++; 	
 						temp[i] = (uint8_t)ahex2int(tempS[0], tempS[1]);
 					}
-					if(num_reg_uuid < MAX_TAGS){
+				int is = 0;
+				for(int i = 0; i < num_reg_uuid+1; i++){
+					if(!memcmp(saved_uuids[i], temp, sizeof(uint8_t)*16)){
+						is = 1;
+						break;
+					}
+				}
+					if(num_reg_uuid < MAX_TAGS && !is){
+						printf("\nDoes not exist %d\n", num_reg_uuid);
 						memcpy(saved_uuids[num_reg_uuid++], temp, sizeof(uint8_t)*16);
 					}
 					ESP_LOG_BUFFER_HEX("\n\n\nUUID", temp, ESP_UUID_LEN_128);
