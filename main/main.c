@@ -20,6 +20,7 @@ void app_main() {
 	 0x94, 0x8e, 0x68, 0x56, 0x7a, 0x75, 0xc6, 0x39};
 	memcpy(saved_uuids[0], temp, sizeof(temp)*15);
 	num_reg_uuid++;
+	//strcpy(name_of_beacon, "Nesto");
 	const esp_vfs_spiffs_conf_t conf = {
 		.base_path = "/storage",
 		.partition_label = NULL,

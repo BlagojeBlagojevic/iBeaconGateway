@@ -114,20 +114,22 @@ typedef enum {
 	POS_Y,
 	RSSI_TRESHOLD,
 	STREAMING,
+	NAME_OF_BEACON,
 	NUM_OF_TOPICS
 	} Topics;
 //PRAVI PUT DO
 const char* topics[]= {
-	"ADD_TAG",
-	"REMOVE_TAG",
-	"CHANGE_PARKING",
-	"ADD_UUID",
-	"REMOVING_UUID",
-	"ENV_FACTOR",
-	"POS_X",
-	"POS_Y",
-	"RSSI_TRESHOLD",
-	"STREAMING",
+	"parking/ADD_TAG",
+	"parking/REMOVE_TAG",
+	"parking/CHANGE_PARKING",
+	"parking/ADD_UUID",
+	"parking/REMOVING_UUID",
+	"parking/ENV_FACTOR",
+	"parking/POS_X",
+	"parking/POS_Y",
+	"parking/RSSI_TRESHOLD",
+	"parking/STREAMING",
+	"parking/NAME_OF_BEACON",
 	"NUM_OF_TOPICS",
 	};
 
@@ -145,9 +147,15 @@ static inline double distance(int rssi, int ref){
 	return pow(10.0f, temp);
 }
 
-
+//char *uuid = (char*)tempTag.proximity_uuid;
 #define PUBLISH_TAG(tempTag, top)\
-	char *uuid = (char*)tempTag.proximity_uuid;\
+	char uuid[35];\
+	memset(uuid, 0, sizeof(char) * 35);\
+	int counter = 0;\
+	for(int i = 0; i < 16; i++){\
+		uuid[counter++] = (int)tempTag.proximity_uuid[i]/10 + '0';\
+		uuid[counter++] = (int)tempTag.proximity_uuid[i]%10 + '0';\
+	}\	
 	char buffer[1000];\
 	const int refPower = tempTag.refpower;\
 	const int majorId = tempTag.majorID;\
@@ -157,17 +165,18 @@ static inline double distance(int rssi, int ref){
 	const double dist = distance(rssi, refPower);\
 	sprintf(buffer,\
 	        "{\n"\
+			"\"name\": \"%s\",\n"\
 	        "\"refpower\": %d,\n"\
 	        "\"uuid\": \"%s\",\n"\
 	        "\"majorID\": %d,\n"\
 	        "\"rssi\": %d,\n"\
 	        "\"minorID\": %d,\n"\
-	        "\"time\": \"%s\"\n"\
-	        "\"distance\": \"%f\"\n"\
-	        "\"x\": \"%f\"\n"\
-	        "\"y\": \"%f\"\n"\
+	        "\"time\": \"%s\",\n"\
+	        "\"distance\": %f,\n"\
+	        "\"x\": %f,\n"\
+	        "\"y\": %f\n"\
 					"}"\
-	         ,refPower, uuid,  majorId, rssi, minorId, time, dist, pos_x, pos_y);\
+	         ,name_of_beacon, refPower, uuid,  majorId, rssi, minorId, time, dist, pos_x, pos_y);\
 	esp_mqtt_client_publish(client,topics[top],buffer, 0, 1, 0);
 
 
@@ -234,5 +243,6 @@ volatile int countNumOfWritenFilesIntoASpiff = 0;
 
 struct timeval *tv = NULL;
 volatile int justSend = 1;
+volatile char name_of_beacon[25];
 
 #endif

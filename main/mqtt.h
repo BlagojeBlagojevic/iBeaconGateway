@@ -114,6 +114,12 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 			else if(!strncmp(event->topic, topics[STREAMING], event->topic_len )){
 				justSend = (int)atoi(event->data);
 			}
+			else if(!strncmp(event->topic, topics[NAME_OF_BEACON], event->topic_len )){
+				//strcpy(name_of_beacon, event->data);
+				if(event->data_len < 25)
+					memcpy(name_of_beacon, event->data, event->data_len);
+			}
+			
 			break;
 		case MQTT_EVENT_ERROR:
 			//TBD WHAT IF ERROR IS HAPANING

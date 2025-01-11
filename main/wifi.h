@@ -6,8 +6,8 @@
 
 
 //OR WE PUT THEM IN FILE SYSTEM AND THEN GET THEM OUT
-#define SSID "ASUS_88"
-#define PASSWORD "mentor_9656"
+#define SSID "Blagojevic"
+#define PASSWORD "znam1234"
 
 extern void wifi_init();
 
