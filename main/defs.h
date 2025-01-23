@@ -97,13 +97,12 @@ volatile u8 _STATE[NUM_OF_STATES];
 
 
 #include "freertos/queue.h"
-QueueHandle_t xQueueTagAddedToList;  //xQueueCreate(100, sizeof(int));
-QueueHandle_t xQueueTagRemovedFromList;
-QueueHandle_t xQueueParking;
-//QueueHandle_t xQueueCarLeavePlace;
+
+
 
 //MQTT GLOBAL CLIENT i GLOBALNI ENUM
 typedef enum {
+	
 	ADD_TAG = 0,
 	REMOVE_TAG,
 	CHANGE_PARKING,
@@ -116,6 +115,7 @@ typedef enum {
 	STREAMING,
 	NAME_OF_BEACON,
 	NUM_OF_TOPICS
+
 	} Topics;
 //PRAVI PUT DO
 const char* topics[]= {
@@ -232,17 +232,20 @@ int ahex2int(char a, char b){
     return (a << 4) + b;
 }
 
-
-
-
-//MAYBE SEMAPHOR ALI OVERKILl
-volatile int countSubsripcitionEvents = 0;
-
-//
-volatile int countNumOfWritenFilesIntoASpiff = 0;
-
+static volatile int countSubsripcitionEvents = 0; 
+static volatile int countNumOfWritenFilesIntoASpiff = 0;
 struct timeval *tv = NULL;
-volatile int justSend = 1;
-volatile char name_of_beacon[25];
+static volatile int justSend = 1;
+static volatile char name_of_beacon[25];
+QueueHandle_t xQueueTagAddedToList;  //xQueueCreate(100, sizeof(int));
+QueueHandle_t xQueueTagRemovedFromList;
+QueueHandle_t xQueueTagStreaming;
+
+QueueHandle_t xQueueParking;
+
+
+//QueueHandle_t xQueueCarLeavePlace;
+
+
 
 #endif
