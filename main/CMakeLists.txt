@@ -1,5 +1,5 @@
 
-idf_component_register(SRCS "main.c"
+idf_component_register(SRCS "ble.c" "main.c"
                     INCLUDE_DIRS ".")
 set_source_files_properties("main.c" "parking.c" "tag.c" "server.c"
     PROPERTIES COMPILE_FLAGS
@@ -19,4 +19,3 @@ set_source_files_properties("main.c" "parking.c" "tag.c" "server.c"
  
 	-Wno-discarded-qualifiers
 )
-

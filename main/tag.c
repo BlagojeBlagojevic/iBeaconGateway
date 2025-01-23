@@ -165,6 +165,26 @@ extern void AddTagTask(void* parms) {
 		DELAY(1000);
 		}
 	}
+extern void AddTagTaskStreaming(void* parms) {
+	Tag tags;
+	while(1) {
+		while(xQueueReceive(xQueueTagStreaming, &tags, 10) == pdTRUE) {
+			printf("Added tag stream:\n");
+			if(countSubsripcitionEvents == NUM_OF_TOPICS && GET_STATE(MQTT)) {
+				
+				PUBLISH_TAG(tags, ADD_TAG);
+				
+				DELAY(10);
+				}
+			}
+		DELAY(1000);
+		}
+	}
+
+
+
+
+
 extern void RemoveTagTask(void* parms) {
 	static Tag tempTag;
 	while(1) {
