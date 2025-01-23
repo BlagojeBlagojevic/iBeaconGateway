@@ -185,6 +185,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 						  (countSubsripcitionEvents == NUM_OF_TOPICS && 
 						   GET_STATE(MQTT))){
 							Tag tempTag;
+							//memset(tempTag, 0 , sizeof(Tag));
 							strcpy(tempTag.time, timeS);
 							tempTag.majorID = major;
 							tempTag.minorID = minor;
@@ -195,7 +196,9 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 							tempTag.refpower = ibeacon_data->ibeacon_vendor.measured_power;
 							//tempTag.systemTime = esp_timer_get_time();
 							tempTag.isStanding = 0;
-							PUBLISH_TAG(tempTag, ADD_TAG);
+							//PUBLISH_TAG(tempTag, ADD_TAG);
+							//TBD ADD A WAY TO BE SEND NOT FROM HEAR
+							xQueueSend(xQueueTagStreaming, &tempTag, 1);
 						}
 					}
 				}
