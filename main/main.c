@@ -53,16 +53,19 @@ void app_main() {
 	else {
 		ESP_LOGE(TAG, "Failed to set scan params: %s", esp_err_to_name(ret));
 		}
-	xTaskCreate(bleTaskScane, "bleTaskScane", 4096, NULL, 1, NULL);
+	xTaskCreate(bleTaskScane, "bleTaskScane", 10000, NULL, 1, NULL);
 #endif
 	
 	server_init();
 	xQueueTagAddedToList = xQueueCreate(100, sizeof(int));
 	xQueueTagRemovedFromList = xQueueCreate(100, sizeof(Tag));
+	xQueueTagStreaming = xQueueCreate(100, sizeof(Tag));
+	
 	xQueueParking = xQueueCreate(100, sizeof(int));
 
 	xTaskCreate(AddTagTask,    "AddTagTask", 4096, NULL, 1, NULL);
 	xTaskCreate(RemoveTagTask, "RemoveTagTask", 4096, NULL, 1, NULL);
+	xTaskCreate(AddTagTaskStreaming, "AddTagTaskStream", 4096, NULL, 1, NULL);
 	xTaskCreate(checkIfTagIsForRemovalTask, "checkIfTagIsForRemovalTask", 4096, NULL, 10, NULL);
 	xTaskCreate(ParkingTask, "ParkingTask", 4096, NULL, 1, NULL);
 	xTaskCreate(sendSavedTasks, "SendSaveTask", 4096, NULL, 3, NULL);
