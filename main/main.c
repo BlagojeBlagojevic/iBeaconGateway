@@ -38,6 +38,19 @@ void app_main() {
 	ESP_LOGI("main", "We have a %d bytes, used %d\n", (int)total, (int)used);
 	wifi_init();
 	BLOCK_TASK(WIFI, 100);
+//LOAD STUF FROM FILE 
+FILE *f = fopen("/storage/uuid.bin", "r");
+if(f != NULL){
+	fread(&num_reg_uuid, sizeof(uint8_t), 1, f);
+	fread(saved_uuids, sizeof(saved_uuids), 1, f);
+}
+else{
+	printf("Not exisit\n");
+	//DELAY(100000);
+}
+fclose(f);
+
+
 #ifdef BLE_INTERNAL
 	esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
 	esp_sntp_setservername(0, "pool.ntp.org");
