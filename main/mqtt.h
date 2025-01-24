@@ -79,6 +79,12 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 					if(num_reg_uuid < MAX_TAGS && !is){
 						printf("\nDoes not exist %d\n", num_reg_uuid);
 						memcpy(saved_uuids[num_reg_uuid++], temp, sizeof(uint8_t)*16);
+						FILE *f = fopen("/storage/uuid.bin", "w");
+						if(f!= NULL){
+							fwrite(&num_reg_uuid, sizeof(uint8_t), 1,f);
+							fwrite(&saved_uuids, sizeof(saved_uuids), 1, f);
+						}
+						fclose(f);
 					}
 					ESP_LOG_BUFFER_HEX("\n\n\nUUID", temp, ESP_UUID_LEN_128);
 				}	
@@ -90,6 +96,12 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 							memcpy(&saved_uuids[j], &saved_uuids[j + 1], sizeof(uint8_t) * 16);
 							}
 						num_reg_uuid--;
+						FILE *f = fopen("/storage/uuid.bin", "w");
+						if(f!= NULL){
+							fwrite(&num_reg_uuid, sizeof(uint8_t), 1,f);
+							fwrite(&saved_uuids, sizeof(saved_uuids), 1, f);
+						}
+						fclose(f);
 						break;
 						}
 					}
