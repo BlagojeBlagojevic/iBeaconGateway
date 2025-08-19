@@ -236,6 +236,7 @@ static volatile int countSubsripcitionEvents = 0;
 static volatile int countNumOfWritenFilesIntoASpiff = 0;
 struct timeval *tv = NULL;
 static volatile int justSend = 1;
+static volatile int applayKalman = 1;
 static volatile char name_of_beacon[25];
 QueueHandle_t xQueueTagAddedToList;  //xQueueCreate(100, sizeof(int));
 QueueHandle_t xQueueTagRemovedFromList;

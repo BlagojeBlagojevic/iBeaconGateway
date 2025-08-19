@@ -1,5 +1,5 @@
 
-idf_component_register(SRCS "ble.c" "main.c"
+idf_component_register(SRCS "kalman_filter.c" "ble.c" "main.c" 
                     INCLUDE_DIRS ".")
 set_source_files_properties("main.c" "parking.c" "tag.c" "server.c"
     PROPERTIES COMPILE_FLAGS

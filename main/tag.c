@@ -5,13 +5,20 @@ static void addTag(const char* time, int majorID, int minorID, int rssi, int ref
 	for(int i = 0; i < num_g_tag; i++) {
 		//IF
 		if(majorID == g_tag[i].majorID && (minorID == g_tag[i].minorID)) {
+			
 			int64_t curentTime = esp_timer_get_time() - g_tag[i].systemTime;
-			if(!g_tag[i].isStanding) {
+			if(applayKalman){
+				kalman1d_update(&g_tag[i].kalman, rssi);
+				g_tag[i].rssi = g_tag[i].kalman.x;
+			}
+			else if(!g_tag[i].isStanding) {
 				xQueueSend(xQueueTagAddedToList, &i, 10);
 				}
 			g_tag[i].isStanding = 1;
 			g_tag[i].systemTime = esp_timer_get_time();
-
+			if(applayKalman && justSend && (countSubsripcitionEvents == NUM_OF_TOPICS && GET_STATE(MQTT))){
+				xQueueSend(xQueueTagStreaming, &g_tag[i], 1);
+			}
 			return;
 			}
 		}
@@ -29,6 +36,7 @@ static void addTag(const char* time, int majorID, int minorID, int rssi, int ref
 			memcpy(g_tag[num_g_tag].proximity_uuid, uuid, sizeof(uint8_t)*16);
 		g_tag[num_g_tag].rssi = rssi;
 		g_tag[num_g_tag].refpower = refpower;
+		kalman1d_init(&g_tag[num_g_tag].kalman, 0, VAR0, MESURMENT_VAR, PROCES_VAR); 
 		g_tag[num_g_tag].systemTime = esp_timer_get_time();
 		g_tag[num_g_tag].isStanding = 0;
 		num_g_tag++;

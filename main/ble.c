@@ -181,7 +181,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 									 ibeacon_data->ibeacon_vendor.measured_power, 
 									 ibeacon_data->ibeacon_vendor.proximity_uuid);
 						
-						if(justSend &&
+						if(justSend && (!applayKalman) && 
 						  (countSubsripcitionEvents == NUM_OF_TOPICS && 
 						   GET_STATE(MQTT))){
 							Tag tempTag;
@@ -192,6 +192,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 							memcpy(tempTag.proximity_uuid, 
 									ibeacon_data->ibeacon_vendor.proximity_uuid,
 									sizeof(uint8_t)*16);
+									
 							tempTag.rssi = param->scan_rst.rssi;
 							tempTag.refpower = ibeacon_data->ibeacon_vendor.measured_power;
 							//tempTag.systemTime = esp_timer_get_time();

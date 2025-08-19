@@ -1,6 +1,7 @@
 #ifndef TAG_H
 #define TAG_H
 #include "defs.h"
+#include "kalman_filter.h"
 #include <stdint.h>
 #include <string.h>
 #include<time.h>
@@ -14,6 +15,7 @@ static volatile int rssi_treshold = -100;
 typedef struct {
 	int64_t systemTime;  //U MICROSECUNDAMA
 	char time[MAX_TIME];
+	Kalman1D kalman;
 	int majorID;
 	int minorID;
 	int  rssi;
