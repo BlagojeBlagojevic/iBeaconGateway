@@ -16,8 +16,15 @@ static void addTag(const char* time, int majorID, int minorID, int rssi, int ref
 				}
 			g_tag[i].isStanding = 1;
 			g_tag[i].systemTime = esp_timer_get_time();
-			if(applayKalman && justSend && (countSubsripcitionEvents == NUM_OF_TOPICS && GET_STATE(MQTT))){
+			if(applayKalman && justSend && (countSubsripcitionEvents == NUM_OF_TOPICS 
+				&& GET_STATE(MQTT))){
 				xQueueSend(xQueueTagStreaming, &g_tag[i], 1);
+			}
+			else if(justSend && (!applayKalman) && 
+				(countSubsripcitionEvents == NUM_OF_TOPICS
+				&& GET_STATE(MQTT))){
+				xQueueSend(xQueueTagStreaming, &g_tag[i], i);
+				
 			}
 			return;
 			}
