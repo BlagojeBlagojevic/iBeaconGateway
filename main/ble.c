@@ -180,7 +180,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 						addTag(timeS, (int)major, (int)minor, param->scan_rst.rssi, 
 									 ibeacon_data->ibeacon_vendor.measured_power, 
 									 ibeacon_data->ibeacon_vendor.proximity_uuid);
-						
+						/*Moved to addTag
 						if(justSend && (!applayKalman) && 
 						  (countSubsripcitionEvents == NUM_OF_TOPICS && 
 						   GET_STATE(MQTT))){
@@ -201,6 +201,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 							//TBD ADD A WAY TO BE SEND NOT FROM HEAR
 							xQueueSend(xQueueTagStreaming, &tempTag, 1);
 						}
+						//*/
 					}
 				}
 				}
